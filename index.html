@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Example</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .message-container {
+            display: flex;
+            margin: 5px 0;
+        }
+        .message {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 12px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .message.user {
+            background-color: #00A481;
+            color: white;
+        }
+        .message.server {
+            background-color: #3c6fb15e;
+            color: #ffffff;
+        }
+        .message-container.user {
+            justify-content: flex-end; /* Alinha as mensagens enviadas à direita */
+        }
+        .message-container.server {
+            justify-content: flex-start; /* Alinha as mensagens recebidas à esquerda */
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            overflow-y: auto; /* Permite rolar verticalmente */
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;
+        }
+
+        /* Oculta a barra de rolagem vertical em WebKit (Chrome, Safari) */
+#log::-webkit-scrollbar {
+    width: 0; /* Largura da barra de rolagem */
+    background: transparent; /* Cor de fundo da barra de rolagem */
+}
+
+
+        #log {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-grow: 1;
+            scrollbar-width: none;
+        }
+
+        #messageInput {
+            border-width: 2px;
+            margin-bottom: 1.25rem; /* mb-5 (5 * 0.25rem) */
+            border-color: #000000; /* border-black */
+            width: 100%; /* w-full */
+            padding: 0.75rem; /* p-3 */
+            border-radius: 0.75rem; /* rounded-xl */
+            position: relative; /* relative */
+            bottom: 1.25rem; /* bottom-5 (5 * 0.25rem) */
+            background-color: #000000; /* bg-black */
+            color: #ffffff; /* text-white */
+            outline: none; /* outline-none */
+        }
+        #username {
+            border-width: 2px;
+            margin-bottom: 1.25rem; /* mb-5 */
+            border-color: #000000; /* border-black */
+            width: 100%; /* w-full */
+            padding: 0.75rem; /* p-3 */
+            border-radius: 0.75rem; /* rounded-xl */
+            background-color: #000000; /* bg-black */
+            color: #ffffff; /* text-white */
+            outline: none; /* outline-none */
+        }
+    </style>
+</head>
+<body>
+    <h1 class="p-4 text-2xl font-bold">WebSocket Chat</h1>
+    <div class="xl:p-24 sm:p-12 flex flex-col justify-center items-center border-2">
+        <div class="chat-container rounded-xl p-4 w-full bg-gray-900">
+            <div id="log" class="flex flex-col gap-2 py-5"></div>
+        </div>
+        <input type="text" id="username" placeholder="Digite seu nome..." class="border-2 mb-5 border-black w-full p-3 rounded-xl relative bottom-5 bg-black text-white outline-none">
+        <textarea id="messageInput" placeholder="Escreva uma mensagem..."></textarea>
+        <button id="sendButton" class="w-full py-5 bg-gray-900 text-green-500 font-bold text-xl p-3 rounded-xl">Enviar</button>
+    </div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8080');
+
+        const log = document.getElementById('log');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const usernameInput = document.getElementById('username');
+
+        messageInput.style.display = "none"; // Oculta o campo de mensagem até que o usuário defina o nome
+
+        let isUsernameSet = false;
+
+        // Função para adicionar mensagens ao log
+        function appendLog(message, type) {
+            const messageContainer = document.createElement('div');
+            messageContainer.className = `message-container ${type}`;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            
+            messageContainer.appendChild(messageDiv);
+            log.appendChild(messageContainer);
+            
+            // Usar um pequeno atraso e garantir que o último item seja visível
+            setTimeout(() => {
+                log.scrollTop = log.scrollHeight;
+            }, 0);
+        }
+
+
+
+        socket.addEventListener('open', () => {
+            appendLog('• Conectado ao servidor WebSocket!', 'server');
+        });
+
+        socket.addEventListener('message', event => {
+            appendLog(event.data, 'server');
+        });
+
+        socket.addEventListener('close', () => {
+            appendLog('Conexão fechada', 'server');
+        });
+
+        socket.addEventListener('error', error => {
+            appendLog(`Erro: ${error.message}`, 'server');
+        });
+
+        sendButton.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const message = messageInput.value.trim();
+            
+            if (!isUsernameSet) {
+                if (username) {
+                    socket.send(JSON.stringify({ username }));
+                    isUsernameSet = true;
+                    usernameInput.disabled = true;
+                    usernameInput.style.display = "none";
+                    messageInput.style.display = "block";
+                    appendLog(`Você se conectou como: ${username}`, 'user');
+                } else {
+                    appendLog('Por favor, insira um nome de usuário.', 'server');
+                }
+                return;
+            }
+
+            if (message) {
+                socket.send(message);
+                // Você: Mensagem
+                appendLog(`${message}`, 'user');
+                messageInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
