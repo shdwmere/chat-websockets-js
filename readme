@@ -1,0 +1,3 @@
+Um pequeno exemplo de como funcionam as conexões bidirecionais full-duplex de WebSockets, através de um Chat em tempo real. 
+
+JavaScript possui uma API nativa para lidar com WebSockets, é muito legal e simples de usar.
